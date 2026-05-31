@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virtual Album</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400;1,700&family=Caveat:wght@500;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --gold: #c9a96e;
+      --gold-dim: rgba(201,169,110,0.18);
+      --bg: #0e0d10;
+      --surface: #16141a;
+      --text: #f0ece8;
+      --muted: #6b6470;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ═══════════════════════════════════════════════
+       PAGES
+    ═══════════════════════════════════════════════ */
+    .page {
+      display: none;
+      min-height: 100vh;
+      animation: pageFadeIn 0.5s ease both;
+    }
+    .page.active { display: block; }
+
+    @keyframes pageFadeIn {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ═══════════════════════════════════════════════
+       SHARED HEADER
+    ═══════════════════════════════════════════════ */
+    .site-header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      padding: 20px 36px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .logo {
+      font-family: 'Caveat', cursive;
+      font-size: 26px; font-weight: 700;
+      color: var(--gold); cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .logo:hover { opacity: 0.8; }
+
+    .nav-links { display: flex; gap: 8px; }
+
+    .nav-btn {
+      padding: 8px 22px; border-radius: 100px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px; font-weight: 400;
+      cursor: pointer; transition: all 0.25s ease;
+      border: none;
+    }
+    .nav-btn.ghost {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.75);
+    }
+    .nav-btn.ghost:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    .nav-btn.solid {
+      background: var(--gold);
+      color: #1a1209;
+      font-weight: 500;
+    }
+    .nav-btn.solid:hover {
+      background: #dfc080;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(201,169,110,0.35);
+    }
+
+    /* ═══════════════════════════════════════════════
+       HOME PAGE — HERO
+    ═══════════════════════════════════════════════ */
+    #page-home { }
+
+    .hero {
+      height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 0 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* subtle radial glow behind hero text */
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -55%);
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse, rgba(201,169,110,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 1.4rem;
+      opacity: 0; animation: fadeUp 0.8s 0.3s ease forwards;
+    }
+
+    .hero-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.8rem, 7vw, 5.5rem);
+      font-weight: 700; line-height: 1.08;
+      margin-bottom: 1.4rem;
+      opacity: 0; animation: fadeUp 0.9s 0.5s ease forwards;
+    }
+    .hero-title em {
+      font-style: italic; font-weight: 400;
+      color: var(--gold);
+    }
+
+    .hero-sub {
+      font-size: 16px; color: var(--muted);
+      max-width: 420px; line-height: 1.7;
+      margin-bottom: 2.4rem;
+      opacity: 0; animation: fadeUp 0.9s 0.7s ease forwards;
+    }
+
+    .hero-btns {
+      display: flex; gap: 12px; justify-content: center;
+      opacity: 0; animation: fadeUp 0.9s 0.9s ease forwards;
+    }
+
+    /* scroll hint */
+    .scroll-down {
+      position: absolute; bottom: 2.5rem; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      color: var(--muted); font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+      opacity: 0; animation: fadeIn 1s 1.4s ease forwards;
+    }
+    .scroll-down::after {
+      content: '';
+      width: 1px; height: 44px;
+      background: linear-gradient(to bottom, var(--muted), transparent);
+    }
+    .scroll-bounce { animation: bounce 1.8s 2s ease-in-out infinite; }
+
+    /* ═══════════════════════════════════════════════
+       GALLERY SECTION (inside home page)
+    ═══════════════════════════════════════════════ */
+    #gallery-section {
+      padding: 0 0 140px;
+    }
+
+    .section-header {
+      text-align: center;
+      padding: 90px 2rem 48px;
+    }
+    .section-label {
+      font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 10px;
+    }
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      font-weight: 700;
+    }
+    .section-title em { font-style: italic; color: var(--gold); }
+
+    /* Masonry */
+    .album {
+      column-count: 4; column-gap: 16px;
+      padding: 0 32px;
+    }
+    @media (max-width: 1100px) { .album { column-count: 3; } }
+    @media (max-width: 750px)  { .album { column-count: 2; } }
+    @media (max-width: 480px)  { .album { column-count: 1; } }
+
+    /* CARD */
+    .card {
+      break-inside: avoid; margin-bottom: 16px;
+      border-radius: 18px; overflow: hidden;
+      background: transparent; cursor: pointer; position: relative;
+      animation: cardIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.35s ease;
+    }
+    .card:hover {
+      transform: translateY(-7px) scale(1.015);
+      box-shadow: 0 28px 60px rgba(0,0,0,0.55);
+      z-index: 10;
+    }
+    .card.removing {
+      animation: cardOut 0.42s cubic-bezier(0.55,0,1,0.45) forwards !important;
+      pointer-events: none;
+    }
+
+    /* delete btn */
+    .delete-btn {
+      position: absolute; top: 10px; left: 10px; z-index: 20;
+      width: 30px; height: 30px; border-radius: 50%;
+      background: rgba(15,8,10,0.72);
+      border: 1px solid rgba(255,80,80,0.3);
+      color: rgba(255,100,100,0.85); font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; opacity: 0; transform: scale(0.65);
+      transition: opacity 0.22s, transform 0.25s cubic-bezier(0.34,1.56,0.64,1),
+                  background 0.18s, color 0.18s, border-color 0.18s;
+      backdrop-filter: blur(6px);
+    }
+    .card:hover .delete-btn { opacity: 1; transform: scale(1); }
+    .delete-btn:hover {
+      background: rgba(200,35,35,0.85) !important;
+      border-color: rgba(255,100,100,0.65) !important;
+      color: #fff !important; transform: scale(1.18) !important;
+    }
+
+    /* media */
+    .card-media { position: relative; width: 100%; overflow: hidden; }
+    .card-media img { width: 100%; display: block; transition: transform 0.45s ease; }
+    .card:hover .card-media img { transform: scale(1.04); }
+    .card-media video { width: 100%; display: block; pointer-events: none; }
+
+    .video-badge {
+      position: absolute; top: 12px; right: 12px;
+      background: var(--gold); color: #1a1209;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+      padding: 4px 10px; border-radius: 100px; z-index: 2;
+    }
+
+    .card-body { padding: 10px 14px 14px; }
+    .card-caption {
+      font-family: 'Caveat', cursive;
+      font-size: 26px; font-style: italic; font-weight: 500;
+      color: var(--gold); line-height: 1.35;
+      outline: none; word-break: break-word; min-height: 32px;
+    }
+    .card-caption:empty::before {
+      content: attr(data-placeholder); color: #4a4650; font-style: italic;
+    }
+
+    /* ═══════════════════════════════════════════════
+       LIGHTBOX
+    ═══════════════════════════════════════════════ */
+    #lightbox {
+      position: fixed; inset: 0; z-index: 999;
+      background: rgba(8,7,10,0.94); backdrop-filter: blur(16px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 2rem; opacity: 0; pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+    #lightbox.open { opacity: 1; pointer-events: all; }
+
+    .lb-box {
+      max-width: 880px; width: 100%;
+      display: flex; flex-direction: column; align-items: center; gap: 1.2rem;
+      transform: translateY(20px) scale(0.96);
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    #lightbox.open .lb-box { transform: translateY(0) scale(1); }
+
+    #lbMedia {
+      width: 100%; border-radius: 16px; overflow: hidden;
+      background: var(--surface); max-height: 75vh;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #lbMedia img { width: 100%; max-height: 75vh; object-fit: contain; display: block; }
+    #lbMedia video { width: 100%; max-height: 75vh; display: block; }
+    #lbMedia.slide-left  { animation: slideLeft  0.3s cubic-bezier(0.4,0,0.2,1) both; }
+    #lbMedia.slide-right { animation: slideRight 0.3s cubic-bezier(0.4,0,0.2,1) both; }
+
+    #lbCaption {
+      font-family: 'Caveat', cursive; font-size: 26px; font-style: italic;
+      color: var(--gold); text-align: center; max-width: 680px; line-height: 1.45;
+      transition: opacity 0.22s ease;
+    }
+
+    .lb-arrow {
+      position: fixed; top: 50%; transform: translateY(-50%);
+      width: 46px; height: 46px; border-radius: 50%;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.13);
+      color: #fff; font-size: 22px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s, border-color 0.2s; z-index: 1001; user-select: none;
+    }
+    .lb-arrow:hover { background: var(--gold-dim); border-color: var(--gold); }
+    .lb-arrow:disabled { opacity: 0.2; pointer-events: none; }
+    #lbPrev { left: 20px; } #lbNext { right: 20px; }
+
+    #lbCounter {
+      position: fixed; top: 22px; left: 50%; transform: translateX(-50%);
+      font-size: 12px; color: rgba(255,255,255,0.3); letter-spacing: 0.08em; z-index: 1001;
+    }
+    .lb-close {
+      position: fixed; top: 20px; right: 24px;
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14);
+      color: #fff; font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s, transform 0.25s; z-index: 1001;
+    }
+    .lb-close:hover { background: rgba(255,255,255,0.17); transform: rotate(90deg) scale(1.1); }
+
+    #lbDelete {
+      position: fixed; top: 20px; left: 24px; z-index: 1001;
+      display: flex; align-items: center; gap: 6px;
+      padding: 0 16px; height: 40px; border-radius: 100px;
+      background: rgba(160,25,25,0.2); border: 1px solid rgba(255,80,80,0.28);
+      color: rgba(255,110,110,0.9); font-size: 13px; cursor: pointer;
+      transition: background 0.2s, color 0.2s, transform 0.2s;
+    }
+    #lbDelete:hover { background: rgba(200,35,35,0.78); color: #fff; transform: scale(1.04); }
+
+    /* ═══════════════════════════════════════════════
+       CONFIRM TOAST
+    ═══════════════════════════════════════════════ */
+    #confirmToast {
+      position: fixed; bottom: 90px; left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: #1e1b22; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px; padding: 14px 20px;
+      display: flex; align-items: center; gap: 12px;
+      font-size: 14px; color: var(--text); z-index: 2000;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s, transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      white-space: nowrap; box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+    }
+    #confirmToast.show { opacity: 1; pointer-events: all; transform: translateX(-50%) translateY(0); }
+    .toast-yes {
+      padding: 6px 16px; border-radius: 100px;
+      background: rgba(195,35,35,0.85); border: none;
+      color: #fff; font-size: 13px; cursor: pointer; transition: background 0.2s, transform 0.2s;
+    }
+    .toast-yes:hover { background: rgb(210,40,40); transform: scale(1.05); }
+    .toast-no {
+      padding: 6px 16px; border-radius: 100px;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.13);
+      color: var(--text); font-size: 13px; cursor: pointer; transition: background 0.2s;
+    }
+    .toast-no:hover { background: rgba(255,255,255,0.13); }
+
+    /* ═══════════════════════════════════════════════
+       ADD BUTTON
+    ═══════════════════════════════════════════════ */
+    .add-btn {
+      position: fixed; bottom: 28px; right: 28px; z-index: 100;
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--gold); border: none;
+      color: #1a1209; font-size: 28px; font-weight: 300; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 24px rgba(201,169,110,0.45);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s;
+    }
+    .add-btn:hover { transform: scale(1.15) rotate(15deg); box-shadow: 0 12px 36px rgba(201,169,110,0.55); }
+
+    /* ═══════════════════════════════════════════════
+       STORY PAGE
+    ═══════════════════════════════════════════════ */
+    #page-story {
+      min-height: 100vh;
+      background: var(--bg);
+      padding-top: 90px;
+    }
+
+    .story-hero {
+      text-align: center;
+      padding: 60px 2rem 48px;
+      position: relative;
+    }
+    .story-hero::after {
+      content: '';
+      display: block;
+      width: 80px; height: 1px;
+      background: linear-gradient(to right, transparent, var(--gold), transparent);
+      margin: 28px auto 0;
+    }
+    .story-hero h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      font-weight: 700;
+    }
+    .story-hero h2 em { font-style: italic; color: var(--gold); }
+    .story-hero p {
+      font-size: 14px; color: var(--muted);
+      margin-top: 12px; line-height: 1.7;
+    }
+
+    /* NOTEBOOK */
+    .notebook {
+      max-width: 780px; margin: 0 auto;
+      padding: 0 32px 140px;
+    }
+
+    /* page title editable */
+    .story-page-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem; font-style: italic;
+      color: var(--gold); text-align: center;
+      margin-bottom: 40px;
+      outline: none; border: none; background: transparent;
+      width: 100%; display: block;
+      transition: color 0.2s;
+    }
+    .story-page-title:empty::before {
+      content: 'Chapter One...';
+      color: #3a3640; font-style: italic;
+    }
+
+    /* lined paper area */
+    .lined-paper {
+      position: relative;
+      background: transparent;
+    }
+
+    /* golden vertical margin line */
+    .lined-paper::before {
+      content: '';
+      position: absolute;
+      left: 68px; top: 0; bottom: 0;
+      width: 1.5px;
+      background: linear-gradient(to bottom, var(--gold), rgba(201,169,110,0.15));
+      pointer-events: none; z-index: 1;
+    }
+
+    /* the textarea */
+    .story-text {
+      width: 100%;
+      min-height: 70vh;
+      background: transparent;
+      border: none; outline: none; resize: none;
+      font-family: 'Caveat', cursive;
+      font-size: 24px; font-weight: 500;
+      color: rgba(240,236,232,0.88);
+      line-height: 56px; /* must match line-height below */
+      padding: 0 0 0 90px;
+      caret-color: var(--gold);
+      position: relative; z-index: 2;
+      /* golden horizontal lines via background */
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 55px,
+        rgba(201,169,110,0.18) 55px,
+        rgba(201,169,110,0.18) 56px
+      );
+      background-attachment: local;
+    }
+    .story-text::placeholder { color: #3a3640; font-style: italic; }
+    .story-text:focus { background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 55px,
+        rgba(201,169,110,0.28) 55px,
+        rgba(201,169,110,0.28) 56px
+      );
+    }
+
+    /* character count */
+    .story-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 0 0 90px;
+      border-top: 1px solid rgba(201,169,110,0.12);
+      margin-top: 8px;
+    }
+    .char-count { font-size: 12px; color: var(--muted); letter-spacing: 0.05em; }
+    .story-save-btn {
+      padding: 8px 22px; border-radius: 100px;
+      background: var(--gold-dim); border: 1px solid rgba(201,169,110,0.35);
+      color: var(--gold); font-size: 13px; cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .story-save-btn:hover { background: rgba(201,169,110,0.28); border-color: var(--gold); }
+    .save-indicator {
+      font-size: 11px; color: var(--muted); letter-spacing: 0.08em;
+      opacity: 0; transition: opacity 0.4s;
+    }
+    .save-indicator.show { opacity: 1; }
+
+    /* ═══════════════════════════════════════════════
+       VOICE NOTE (inside lightbox)
+    ═══════════════════════════════════════════════ */
+    .voice-note-bar {
+      display: flex; align-items: center; gap: 14px;
+      background: rgba(22,20,26,0.85);
+      border: 1px solid rgba(201,169,110,0.2);
+      border-radius: 100px;
+      padding: 10px 18px;
+      width: 100%; max-width: 520px;
+      backdrop-filter: blur(10px);
+      transition: border-color 0.3s;
+    }
+    .voice-note-bar.recording { border-color: rgba(255,80,80,0.55); animation: pulseBorder 1.4s ease-in-out infinite; }
+
+    #vnRecordBtn {
+      width: 38px; height: 38px; border-radius: 50%;
+      border: 1px solid rgba(201,169,110,0.35); cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      background: var(--gold-dim); color: var(--gold);
+      transition: background 0.2s, transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    #vnRecordBtn:hover { background: rgba(201,169,110,0.28); transform: scale(1.08); }
+    #vnRecordBtn.active {
+      background: rgba(200,35,35,0.22); border-color: rgba(255,80,80,0.5); color: #ff6060;
+      animation: pulseGlow 1.2s ease-in-out infinite;
+    }
+
+    .vn-status { flex: 1; font-size: 12px; color: var(--muted); letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .vn-status.rec { color: #ff8080; }
+
+    #vnTimer { font-size: 12px; color: var(--muted); letter-spacing: 0.08em; min-width: 36px; text-align: right; }
+    #vnTimer.active { color: #ff8080; }
+
+    .vn-wave { display: none; align-items: center; gap: 2px; height: 22px; }
+    .vn-wave.show { display: flex; }
+    .vn-bar { width: 3px; border-radius: 2px; background: #ff8080; animation: waveBar 0.7s ease-in-out infinite alternate; }
+    .vn-bar:nth-child(1){height:6px;  animation-delay:0s}
+    .vn-bar:nth-child(2){height:14px; animation-delay:0.1s}
+    .vn-bar:nth-child(3){height:9px;  animation-delay:0.2s}
+    .vn-bar:nth-child(4){height:18px; animation-delay:0.05s}
+    .vn-bar:nth-child(5){height:11px; animation-delay:0.15s}
+    .vn-bar:nth-child(6){height:7px;  animation-delay:0.25s}
+
+    #vnPlayer { display: none; width: 100%; max-width: 520px; height: 36px; border-radius: 100px; accent-color: var(--gold); }
+    #vnPlayer.show { display: block; }
+
+    #vnDeleteBtn {
+      background: transparent; border: none; color: rgba(255,100,100,0.5);
+      font-size: 14px; cursor: pointer; padding: 4px 6px; border-radius: 6px; flex-shrink: 0;
+      transition: color 0.2s, transform 0.2s; display: none;
+    }
+    #vnDeleteBtn.show { display: block; }
+    #vnDeleteBtn:hover { color: #ff6060; transform: scale(1.15); }
+
+    @keyframes pulseBorder {
+      0%,100% { border-color: rgba(255,80,80,0.35); }
+      50%      { border-color: rgba(255,80,80,0.75); }
+    }
+    @keyframes pulseGlow {
+      0%,100% { box-shadow: 0 0 0 0 rgba(255,80,80,0); }
+      50%      { box-shadow: 0 0 0 6px rgba(255,80,80,0.2); }
+    }
+    @keyframes waveBar {
+      from { transform: scaleY(0.35); }
+      to   { transform: scaleY(1); }
+    }
+
+    /* ═══════════════════════════════════════════════
+       ANIMATIONS
+    ═══════════════════════════════════════════════ */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50%       { transform: translateX(-50%) translateY(6px); }
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(28px) scale(0.95); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes cardOut {
+      0%   { opacity: 1; transform: scale(1); max-height: 800px; margin-bottom: 16px; }
+      50%  { opacity: 0; transform: scale(0.88) translateY(8px); }
+      100% { opacity: 0; transform: scale(0.85); max-height: 0; margin-bottom: 0; }
+    }
+    @keyframes slideLeft {
+      from { opacity: 0; transform: translateX(50px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes slideRight {
+      from { opacity: 0; transform: translateX(-50px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .card:nth-child(1){animation-delay:.04s} .card:nth-child(2){animation-delay:.09s}
+    .card:nth-child(3){animation-delay:.14s} .card:nth-child(4){animation-delay:.19s}
+    .card:nth-child(5){animation-delay:.24s} .card:nth-child(6){animation-delay:.29s}
+    .card:nth-child(7){animation-delay:.34s} .card:nth-child(8){animation-delay:.39s}
+
+    /* ═══════════════════════════════════════════════
+       IMAGE ADJUSTMENTS PANEL
+    ═══════════════════════════════════════════════ */
+    #adjustToggle {
+      position: fixed; top: 20px; right: 74px; z-index: 1001;
+      display: flex; align-items: center; gap: 7px;
+      padding: 0 14px; height: 40px; border-radius: 100px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.75); font-size: 13px;
+      font-family: 'Inter', sans-serif; cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      user-select: none;
+    }
+    #adjustToggle:hover { background: var(--gold-dim); border-color: var(--gold); color: var(--gold); }
+    #adjustToggle.active { background: var(--gold-dim); border-color: var(--gold); color: var(--gold); }
+
+    #adjustPanel {
+      position: fixed; top: 70px; right: 20px; z-index: 1002;
+      width: 300px;
+      background: rgba(18,16,22,0.96);
+      border: 1px solid rgba(201,169,110,0.28);
+      border-radius: 16px;
+      padding: 0 20px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+      /* hidden by default */
+      max-height: 0; overflow: hidden; opacity: 0;
+      transition: max-height 0.38s cubic-bezier(0.4,0,0.2,1),
+                  opacity 0.28s ease,
+                  padding 0.3s ease;
+    }
+    #adjustPanel.open {
+      max-height: 220px; opacity: 1;
+      padding-top: 16px; padding-bottom: 14px;
+    }
+
+    .adj-row {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 10px;
+    }
+    .adj-row:last-child { margin-bottom: 0; }
+
+    .adj-label {
+      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--gold); font-family: 'Inter', sans-serif;
+      width: 84px; flex-shrink: 0;
+    }
+
+    .adj-slider {
+      flex: 1; height: 4px; border-radius: 2px;
+      -webkit-appearance: none; appearance: none;
+      background: rgba(255,255,255,0.1);
+      outline: none; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .adj-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 0 3px rgba(201,169,110,0.25);
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .adj-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 0 5px rgba(201,169,110,0.3);
+    }
+    .adj-slider::-moz-range-thumb {
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--gold); border: none;
+      cursor: pointer;
+    }
+
+    .adj-value {
+      font-size: 11px; color: rgba(255,255,255,0.45);
+      font-family: 'Inter', sans-serif;
+      width: 36px; text-align: right; flex-shrink: 0;
+    }
+
+    .adj-reset {
+      background: transparent; border: none;
+      color: rgba(255,255,255,0.25); font-size: 11px;
+      cursor: pointer; font-family: 'Inter', sans-serif;
+      padding: 0; transition: color 0.2s;
+      text-decoration: underline; text-underline-offset: 2px;
+    }
+    .adj-reset:hover { color: var(--gold); }
+
+    /* ═══════════════════════════════════════════════
+       SCROLLBAR
+    ═══════════════════════════════════════════════ */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-thumb { background: #2e2b33; border-radius: 10px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+  </style>
+</head>
+<body>
+
+  <!-- ── SHARED HEADER ── -->
+  <header class="site-header">
+    <div class="logo" id="navLogo">Virtual Album</div>
+    <div class="nav-links">
+      <button class="nav-btn ghost" id="navGallery">Explore Gallery</button>
+      <button class="nav-btn ghost" id="navStory">Our Story</button>
+    </div>
+  </header>
+
+  <!-- ════════════════════════════════════
+       HOME PAGE
+  ════════════════════════════════════ -->
+  <div id="page-home" class="page active">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-eyebrow">A collection of moments</div>
+      <h1 class="hero-title">Capturing the <em>college life</em></h1>
+      <p class="hero-sub">A cinematic archive of memories, melodies, and moments.</p>
+      <div class="hero-btns">
+        <button class="nav-btn solid" id="heroGallery">Explore Gallery</button>
+        <button class="nav-btn ghost" id="heroStory">Our Story</button>
+      </div>
+      <div class="scroll-down scroll-bounce">scroll</div>
+    </section>
+
+    <!-- GALLERY -->
+    <section id="gallery-section">
+      <div class="section-header">
+        <div class="section-label">Memories</div>
+        <h2 class="section-title">The <em>Album</em></h2>
+      </div>
+      <main class="album" id="album"></main>
+    </section>
+
+  </div><!-- /page-home -->
+
+  <!-- ════════════════════════════════════
+       STORY PAGE
+  ════════════════════════════════════ -->
+  <div id="page-story" class="page">
+    <div class="story-hero">
+      <h2>Our <em>Story</em></h2>
+      <p>A blank page for every memory worth telling. Write freely.</p>
+    </div>
+
+    <div class="notebook">
+      <div class="story-page-title" id="storyTitle" contenteditable="true" data-placeholder="Chapter One..."></div>
+
+      <div class="lined-paper">
+        <textarea
+          class="story-text"
+          id="storyText"
+          placeholder="Start writing your story here... every friendship, every memory, every late night and early morning. This page is yours."
+          spellcheck="false"
+        ></textarea>
+      </div>
+
+      <div class="story-footer">
+        <span class="char-count" id="charCount">0 words</span>
+        <span class="save-indicator" id="saveIndicator">✓ Saved</span>
+      </div>
+    </div>
+  </div><!-- /page-story -->
+
+  <!-- ── LIGHTBOX ── -->
+  <div id="lightbox">
+    <button class="lb-close" id="lbClose">✕</button>
+    <button id="adjustToggle">✦ Adjust</button>
+    <div id="adjustPanel">
+      <div class="adj-row">
+        <span class="adj-label">Brightness</span>
+        <input class="adj-slider" type="range" id="sliderBrightness" min="0" max="200" value="100">
+        <span class="adj-value" id="valBrightness">100%</span>
+      </div>
+      <div class="adj-row">
+        <span class="adj-label">Saturation</span>
+        <input class="adj-slider" type="range" id="sliderSaturation" min="0" max="200" value="100">
+        <span class="adj-value" id="valSaturation">100%</span>
+      </div>
+      <div class="adj-row">
+        <span class="adj-label">Contrast</span>
+        <input class="adj-slider" type="range" id="sliderContrast" min="0" max="200" value="100">
+        <span class="adj-value" id="valContrast">100%</span>
+      </div>
+      <div class="adj-row" style="justify-content: flex-end; margin-top: 4px;">
+        <button class="adj-reset" id="adjReset">Reset all</button>
+      </div>
+    </div>
+    <button id="lbDelete">🗑 Delete</button>
+    <button class="lb-arrow" id="lbPrev">&#8592;</button>
+    <button class="lb-arrow" id="lbNext">&#8594;</button>
+    <div id="lbCounter"></div>
+    <div class="lb-box">
+      <div id="lbMedia"></div>
+      <div id="lbCaption"></div>
+
+      <!-- VOICE NOTE BAR -->
+      <div class="voice-note-bar" id="vnBar">
+        <button id="vnRecordBtn" title="Record voice note">🎙</button>
+        <div class="vn-wave" id="vnWave">
+          <div class="vn-bar"></div><div class="vn-bar"></div><div class="vn-bar"></div>
+          <div class="vn-bar"></div><div class="vn-bar"></div><div class="vn-bar"></div>
+        </div>
+        <span class="vn-status" id="vnStatus">Hold to record a voice note</span>
+        <span id="vnTimer"></span>
+        <button id="vnDeleteBtn" title="Delete voice note">🗑</button>
+      </div>
+      <audio id="vnPlayer" controls></audio>
+
+    </div>
+  </div>
+
+  <!-- ── CONFIRM TOAST ── -->
+  <div id="confirmToast">
+    <span>Delete this memory?</span>
+    <button class="toast-yes" id="toastYes">Delete</button>
+    <button class="toast-no"  id="toastNo">Cancel</button>
+  </div>
+
+  <!-- ── UPLOAD + ADD BTN ── -->
+  <input type="file" hidden id="mediaInput" multiple accept="image/*,video/*">
+  <button class="add-btn" id="addBtn">+</button>
+
+  <script>
+    // ── Page routing ──────────────────────────────────────────────
+    const pages = {
+      home:  document.getElementById('page-home'),
+      story: document.getElementById('page-story'),
+    };
+
+    function showPage(name) {
+      Object.entries(pages).forEach(([k, el]) => {
+        el.classList.toggle('active', k === name);
+      });
+      // show + btn only on home
+      addBtn.style.display = name === 'home' ? '' : 'none';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    document.getElementById('navLogo').addEventListener('click',    () => showPage('home'));
+    document.getElementById('navGallery').addEventListener('click',  () => { showPage('home'); setTimeout(() => document.getElementById('gallery-section').scrollIntoView({behavior:'smooth'}), 100); });
+    document.getElementById('heroGallery').addEventListener('click', () => document.getElementById('gallery-section').scrollIntoView({behavior:'smooth'}));
+    document.getElementById('navStory').addEventListener('click',    () => showPage('story'));
+    document.getElementById('heroStory').addEventListener('click',   () => showPage('story'));
+
+    // ── Story persistence ──────────────────────────────────────────
+    const storyText  = document.getElementById('storyText');
+    const storyTitle = document.getElementById('storyTitle');
+    const charCount  = document.getElementById('charCount');
+    const saveInd    = document.getElementById('saveIndicator');
+    let saveTimer;
+
+    function countWords(str) {
+      const w = str.trim().split(/\s+/).filter(Boolean);
+      return w.length;
+    }
+
+    function saveStory() {
+      localStorage.setItem('va_story_text',  storyText.value);
+      localStorage.setItem('va_story_title', storyTitle.textContent);
+      saveInd.classList.add('show');
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => saveInd.classList.remove('show'), 2000);
+    }
+
+    function loadStory() {
+      storyText.value        = localStorage.getItem('va_story_text')  || '';
+      storyTitle.textContent = localStorage.getItem('va_story_title') || '';
+      charCount.textContent  = countWords(storyText.value) + ' words';
+    }
+
+    storyText.addEventListener('input', () => {
+      charCount.textContent = countWords(storyText.value) + ' words';
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveStory, 800);
+    });
+    storyTitle.addEventListener('input', () => {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveStory, 800);
+    });
+
+    loadStory();
+
+    // ── IndexedDB ────────────────────────────────────────────────
+    const DB_NAME = 'VirtualAlbumDB', STORE = 'memories';
+    let db;
+
+    const openDB = () => new Promise((res, rej) => {
+      // Use a high enough version so all stores are always created on upgrade
+      const req = indexedDB.open(DB_NAME, 10);
+      req.onupgradeneeded = e => {
+        const d = e.target.result;
+        if (!d.objectStoreNames.contains(STORE))
+          d.createObjectStore(STORE, {keyPath:'id'}).createIndex('order','order',{unique:false});
+        if (!d.objectStoreNames.contains('voiceNotes'))
+          d.createObjectStore('voiceNotes', {keyPath:'id'});
+        if (!d.objectStoreNames.contains('adjustments'))
+          d.createObjectStore('adjustments', {keyPath:'id'});
+      };
+      req.onsuccess = e => { db = e.target.result; res(db); };
+      req.onerror   = e => rej(e.target.error);
+      req.onblocked = () => {
+        // Another tab has the DB open at a lower version — ask user to close other tabs
+        console.warn('IndexedDB blocked — close other tabs and refresh');
+      };
+    });
+
+    const dbGetAll = () => new Promise((res,rej) => {
+      const req = db.transaction(STORE,'readonly').objectStore(STORE).index('order').getAll();
+      req.onsuccess = e => res(e.target.result); req.onerror = e => rej(e.target.error);
+    });
+    const dbPut = r => new Promise((res,rej) => {
+      const req = db.transaction(STORE,'readwrite').objectStore(STORE).put(r);
+      req.onsuccess = () => res(); req.onerror = e => rej(e.target.error);
+    });
+    const dbDel = id => new Promise((res,rej) => {
+      const req = db.transaction(STORE,'readwrite').objectStore(STORE).delete(id);
+      req.onsuccess = () => res(); req.onerror = e => rej(e.target.error);
+    });
+    const toBase64 = blob => new Promise((res,rej) => {
+      const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob);
+    });
+
+    // ── Album state ───────────────────────────────────────────────
+    const album        = document.getElementById('album');
+    const mediaInput   = document.getElementById('mediaInput');
+    const addBtn       = document.getElementById('addBtn');
+    const lightbox     = document.getElementById('lightbox');
+    const lbMedia      = document.getElementById('lbMedia');
+    const lbCaption    = document.getElementById('lbCaption');
+    const lbClose      = document.getElementById('lbClose');
+    const lbPrev       = document.getElementById('lbPrev');
+    const lbNext       = document.getElementById('lbNext');
+    const lbCounter    = document.getElementById('lbCounter');
+    const lbDelete     = document.getElementById('lbDelete');
+    const confirmToast = document.getElementById('confirmToast');
+    const toastYes     = document.getElementById('toastYes');
+    const toastNo      = document.getElementById('toastNo');
+
+    let mediaItems   = [];
+    let currentIndex = -1;
+
+    // ── Make Card ─────────────────────────────────────────────────
+    function makeCard(record) {
+      const { id, src, isVideo, caption: capText, order } = record;
+      const card = document.createElement('div');
+      card.className = 'card'; card.dataset.id = id;
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'delete-btn'; delBtn.textContent = '✕';
+      delBtn.addEventListener('click', e => { e.stopPropagation(); askDelete(id); });
+      card.appendChild(delBtn);
+
+      const wrap = document.createElement('div'); wrap.className = 'card-media';
+      let el;
+      if (isVideo) {
+        el = document.createElement('video');
+        el.src = src; el.autoplay = true; el.muted = true; el.loop = true; el.playsInline = true;
+        const badge = document.createElement('div');
+        badge.className = 'video-badge'; badge.textContent = 'VIDEO';
+        wrap.appendChild(badge);
+      } else {
+        el = document.createElement('img'); el.src = src; el.alt = '';
+      }
+      wrap.appendChild(el);
+
+      const body = document.createElement('div'); body.className = 'card-body';
+      const cap  = document.createElement('div'); cap.className = 'card-caption';
+      cap.contentEditable = 'true';
+      cap.setAttribute('data-placeholder','write your memory here...');
+      cap.textContent = capText || '';
+      cap.addEventListener('input', () => dbPut({id,src,isVideo,caption:cap.textContent.trim(),order,timestamp:Date.now()}));
+      cap.addEventListener('click', e => e.stopPropagation());
+      body.appendChild(cap);
+      card.appendChild(wrap); card.appendChild(body);
+
+      card.addEventListener('click', e => {
+        if (cap.contains(e.target) || delBtn.contains(e.target)) return;
+        const idx = mediaItems.findIndex(m => m.id === id);
+        if (idx !== -1) openLightbox(idx);
+      });
+
+      mediaItems.push({ id, src, isVideo, cardEl: card, captionEl: cap, order });
+      return card;
+    }
+
+    // ── Delete ────────────────────────────────────────────────────
+    let pendingId = null;
+    function askDelete(id) { pendingId = id; confirmToast.classList.add('show'); }
+
+    toastNo.addEventListener('click', () => { confirmToast.classList.remove('show'); pendingId = null; });
+
+    toastYes.addEventListener('click', async () => {
+      if (!pendingId) return;
+      const id = pendingId; confirmToast.classList.remove('show'); pendingId = null;
+      await dbDel(id);
+      const idx = mediaItems.findIndex(m => m.id === id); if (idx === -1) return;
+      const { cardEl } = mediaItems[idx]; mediaItems.splice(idx, 1);
+      if (lightbox.classList.contains('open')) {
+        if (!mediaItems.length) closeLightbox();
+        else { currentIndex = Math.min(idx, mediaItems.length-1); renderMedia(currentIndex,'none'); }
+      }
+      cardEl.classList.add('removing');
+      cardEl.addEventListener('animationend', () => cardEl.remove(), { once: true });
+    });
+
+    // ── Lightbox ──────────────────────────────────────────────────
+    function renderMedia(index, dir) {
+      const item = mediaItems[index]; if (!item) return;
+      const v = lbMedia.querySelector('video'); if (v) v.pause();
+      lbMedia.className = ''; lbMedia.innerHTML = '';
+      let el;
+      if (item.isVideo) {
+        el = document.createElement('video'); el.src = item.src; el.controls = true; el.autoplay = true;
+      } else { el = document.createElement('img'); el.src = item.src; }
+      lbMedia.appendChild(el);
+      if (dir === 'left' || dir === 'right') { void lbMedia.offsetWidth; lbMedia.classList.add('slide-'+dir); }
+      lbCaption.style.opacity = '0';
+      setTimeout(() => { lbCaption.textContent = item.captionEl.textContent.trim(); lbCaption.style.opacity = '1'; }, 160);
+      lbCounter.textContent = (index+1) + ' / ' + mediaItems.length;
+      lbPrev.disabled = index === 0; lbNext.disabled = index === mediaItems.length-1;
+    }
+
+    function openLightbox(index) {
+      currentIndex = index; renderMedia(currentIndex,'none');
+      lightbox.classList.add('open'); document.body.style.overflow = 'hidden';
+      // load voice note for this item
+      if (mediaItems[index]) {
+        ensureVNStore().then(() => loadVoiceNote(mediaItems[index].id)).catch(()=>{});
+      }
+    }
+    function closeLightbox() {
+      // stop any ongoing recording
+      if (typeof mediaRecorder !== 'undefined' && mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+      lightbox.classList.remove('open'); document.body.style.overflow = '';
+      const v = lbMedia.querySelector('video'); if (v) v.pause();
+      setTimeout(() => { lbMedia.innerHTML = ''; }, 350); currentIndex = -1;
+      // reset voice UI
+      if (typeof resetVoiceUI === 'function') {
+        resetVoiceUI();
+        if (vnPlayer) { vnPlayer.classList.remove('show'); vnPlayer.src = ''; }
+        if (vnDeleteBtn) vnDeleteBtn.classList.remove('show');
+        if (vnStatus) vnStatus.textContent = 'Hold to record a voice note';
+      }
+    }
+
+    const navPrev = () => {
+      if (currentIndex > 0) {
+        currentIndex--; renderMedia(currentIndex,'right');
+        if (mediaItems[currentIndex]) ensureVNStore().then(() => loadVoiceNote(mediaItems[currentIndex].id)).catch(()=>{});
+      }
+    };
+    const navNext = () => {
+      if (currentIndex < mediaItems.length-1) {
+        currentIndex++; renderMedia(currentIndex,'left');
+        if (mediaItems[currentIndex]) ensureVNStore().then(() => loadVoiceNote(mediaItems[currentIndex].id)).catch(()=>{});
+      }
+    };
+
+    lbClose.addEventListener('click', closeLightbox);
+    lbPrev.addEventListener('click',  e => { e.stopPropagation(); navPrev(); });
+    lbNext.addEventListener('click',  e => { e.stopPropagation(); navNext(); });
+    lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+    lbDelete.addEventListener('click', () => { if (currentIndex >= 0 && mediaItems[currentIndex]) askDelete(mediaItems[currentIndex].id); });
+    document.addEventListener('keydown', e => {
+      if (!lightbox.classList.contains('open')) return;
+      if (e.key === 'Escape')    closeLightbox();
+      if (e.key === 'ArrowLeft') navPrev();
+      if (e.key === 'ArrowRight') navNext();
+    });
+
+    // ── Upload ────────────────────────────────────────────────────
+    addBtn.addEventListener('click', () => mediaInput.click());
+
+    mediaInput.addEventListener('change', async e => {
+      const files = Array.from(e.target.files); e.target.value = '';
+      let firstCard = null;
+      for (const file of files) {
+        const isVideo = file.type.startsWith('video');
+        const src = await toBase64(file); const ts = Date.now();
+        const record = { id:`${ts}-${Math.random().toString(36).slice(2)}`, src, isVideo, caption:'', timestamp:ts, order:ts };
+        await dbPut(record);
+        const card = makeCard(record);
+        const pushed = mediaItems.pop(); mediaItems.unshift(pushed);
+        album.prepend(card);
+        if (!firstCard) firstCard = card;
+      }
+      if (firstCard) setTimeout(() => firstCard.querySelector('.card-caption').focus(), 80);
+    });
+
+    // ── Load saved ────────────────────────────────────────────────
+    async function loadSaved() {
+      const records = await dbGetAll();
+      records.sort((a,b) => a.order - b.order);
+      mediaItems = [];
+      records.forEach(r => album.appendChild(makeCard(r)));
+    }
+
+    openDB().then(loadSaved).catch(console.error);
+    // ── Voice Notes ───────────────────────────────────────────────
+    const vnBar       = document.getElementById('vnBar');
+    const vnRecordBtn = document.getElementById('vnRecordBtn');
+    const vnWave      = document.getElementById('vnWave');
+    const vnStatus    = document.getElementById('vnStatus');
+    const vnTimer     = document.getElementById('vnTimer');
+    const vnDeleteBtn = document.getElementById('vnDeleteBtn');
+    const vnPlayer    = document.getElementById('vnPlayer');
+
+    const MAX_RECORD_SECS = 60;
+    let mediaRecorder = null;
+    let recChunks     = [];
+    let recInterval   = null;
+    let recSeconds    = 0;
+    let currentVoiceId = null; // the media item id whose lightbox is open
+
+    // Store voice notes in IndexedDB under a separate store
+    const VN_STORE = 'voiceNotes';
+
+    // Upgrade DB to add voiceNotes store if needed
+    // We do this by bumping version — but since DB is already open we use a helper
+    function ensureVNStore() {
+      // If store already exists we're good
+      if (db.objectStoreNames.contains(VN_STORE)) return Promise.resolve();
+      // Need to upgrade: close and reopen with higher version
+      db.close();
+      return new Promise((res, rej) => {
+        const req = indexedDB.open(DB_NAME, db.version + 1);
+        req.onupgradeneeded = e => {
+          e.target.result.createObjectStore(VN_STORE, { keyPath: 'id' });
+        };
+        req.onsuccess = e => { db = e.target.result; res(); };
+        req.onerror   = e => rej(e.target.error);
+      });
+    }
+
+    const vnGet = id => new Promise((res, rej) => {
+      try {
+        const tx  = db.transaction(VN_STORE, 'readonly');
+        const req = tx.objectStore(VN_STORE).get(id);
+        req.onsuccess = e => res(e.target.result || null);
+        req.onerror   = e => rej(e.target.error);
+      } catch { res(null); }
+    });
+
+    const vnPut = (id, dataUrl) => new Promise((res, rej) => {
+      const tx  = db.transaction(VN_STORE, 'readwrite');
+      const req = tx.objectStore(VN_STORE).put({ id, audio: dataUrl });
+      req.onsuccess = () => res(); req.onerror = e => rej(e.target.error);
+    });
+
+    const vnDelete = id => new Promise((res, rej) => {
+      const tx  = db.transaction(VN_STORE, 'readwrite');
+      const req = tx.objectStore(VN_STORE).delete(id);
+      req.onsuccess = () => res(); req.onerror = e => rej(e.target.error);
+    });
+
+    function fmtTime(s) {
+      const m = Math.floor(s / 60);
+      return m + ':' + String(s % 60).padStart(2, '0');
+    }
+
+    function resetVoiceUI() {
+      vnBar.classList.remove('recording');
+      vnRecordBtn.classList.remove('active');
+      vnRecordBtn.textContent = '🎙';
+      vnWave.classList.remove('show');
+      vnStatus.classList.remove('rec');
+      vnTimer.classList.remove('active');
+      vnTimer.textContent = '';
+      clearInterval(recInterval);
+      recSeconds = 0;
+    }
+
+    async function loadVoiceNote(itemId) {
+      resetVoiceUI();
+      currentVoiceId = itemId;
+      vnPlayer.classList.remove('show');
+      vnDeleteBtn.classList.remove('show');
+      vnPlayer.src = '';
+
+      try {
+        const rec = await vnGet(itemId);
+        if (rec && rec.audio) {
+          vnPlayer.src = rec.audio;
+          vnPlayer.classList.add('show');
+          vnDeleteBtn.classList.add('show');
+          vnStatus.textContent = 'Voice note';
+        } else {
+          vnStatus.textContent = 'Hold to record a voice note';
+        }
+      } catch {
+        vnStatus.textContent = 'Hold to record a voice note';
+      }
+    }
+
+    async function startRecording() {
+      if (mediaRecorder && mediaRecorder.state === 'recording') return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recChunks = [];
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
+        mediaRecorder.onstop = async () => {
+          stream.getTracks().forEach(t => t.stop());
+          const blob   = new Blob(recChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+          const reader = new FileReader();
+          reader.onload = async () => {
+            const dataUrl = reader.result;
+            await ensureVNStore();
+            await vnPut(currentVoiceId, dataUrl);
+            vnPlayer.src = dataUrl;
+            vnPlayer.classList.add('show');
+            vnDeleteBtn.classList.add('show');
+            vnStatus.textContent = 'Voice note';
+            resetVoiceUI();
+          };
+          reader.readAsDataURL(blob);
+        };
+
+        mediaRecorder.start();
+        recSeconds = 0;
+        vnBar.classList.add('recording');
+        vnRecordBtn.classList.add('active');
+        vnRecordBtn.textContent = '⏹';
+        vnWave.classList.add('show');
+        vnStatus.classList.add('rec');
+        vnStatus.textContent = 'Recording...';
+        vnTimer.classList.add('active');
+        vnTimer.textContent = fmtTime(0);
+
+        recInterval = setInterval(() => {
+          recSeconds++;
+          vnTimer.textContent = fmtTime(recSeconds);
+          if (recSeconds >= MAX_RECORD_SECS) stopRecording();
+        }, 1000);
+
+      } catch (err) {
+        vnStatus.textContent = 'Microphone access denied';
+        console.warn('Mic error:', err);
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        vnStatus.textContent = 'Saving...';
+        vnStatus.classList.remove('rec');
+        clearInterval(recInterval);
+        vnWave.classList.remove('show');
+        vnTimer.classList.remove('active');
+      }
+    }
+
+    // Click to start / stop
+    vnRecordBtn.addEventListener('click', () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    });
+
+    // Delete voice note
+    vnDeleteBtn.addEventListener('click', async () => {
+      if (!currentVoiceId) return;
+      await ensureVNStore();
+      await vnDelete(currentVoiceId);
+      vnPlayer.src = '';
+      vnPlayer.classList.remove('show');
+      vnDeleteBtn.classList.remove('show');
+      vnStatus.textContent = 'Hold to record a voice note';
+    });
+
+    // Stop recording if lightbox closes mid-recording
+    const _origClose = closeLightbox;
+    window._closeLightboxWithVN = () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') stopRecording();
+      currentVoiceId = null;
+      resetVoiceUI();
+      vnPlayer.classList.remove('show');
+      vnDeleteBtn.classList.remove('show');
+      vnPlayer.src = '';
+      _origClose();
+    };
+
+    // Hook into openLightbox to load voice note
+    const _origOpen = openLightbox;
+    window._openLightboxWithVN = async (index) => {
+      _origOpen(index);
+      if (mediaItems[index]) {
+        await ensureVNStore();
+        loadVoiceNote(mediaItems[index].id);
+      }
+    };
+
+    // Rewire buttons and events to use VN-aware versions
+    lbClose.removeEventListener('click', closeLightbox);
+    lbClose.addEventListener('click', () => window._closeLightboxWithVN());
+    lightbox.removeEventListener('click', lightbox._bgHandler);
+    lightbox.addEventListener('click', e => { if (e.target === lightbox) window._closeLightboxWithVN(); });
+
+    // Patch arrow nav to also load voice note
+    const _patchNav = (btn, navFn, dir) => {
+      btn.replaceWith(btn.cloneNode(true)); // strip old listeners
+    };
+
+    document.addEventListener('keydown', e => {
+      if (!lightbox.classList.contains('open')) return;
+      if (e.key === 'Escape') window._closeLightboxWithVN();
+    });
+
+    // ── Image Adjustments ─────────────────────────────────────────
+    const adjustToggle     = document.getElementById('adjustToggle');
+    const adjustPanel      = document.getElementById('adjustPanel');
+    const sliderBrightness = document.getElementById('sliderBrightness');
+    const sliderSaturation = document.getElementById('sliderSaturation');
+    const sliderContrast   = document.getElementById('sliderContrast');
+    const valBrightness    = document.getElementById('valBrightness');
+    const valSaturation    = document.getElementById('valSaturation');
+    const valContrast      = document.getElementById('valContrast');
+    const adjReset         = document.getElementById('adjReset');
+
+    const ADJ_STORE = 'adjustments';
+    const ensureAdjStore = () => Promise.resolve(); // store created in openDB
+
+    const adjGet = id => new Promise((res) => {
+      try {
+        const req = db.transaction(ADJ_STORE,'readonly').objectStore(ADJ_STORE).get(id);
+        req.onsuccess = e => res(e.target.result || null);
+        req.onerror   = () => res(null);
+      } catch { res(null); }
+    });
+
+    const adjPut = (id, b, s, c) => new Promise((res) => {
+      try {
+        const req = db.transaction(ADJ_STORE,'readwrite').objectStore(ADJ_STORE).put({ id, b, s, c });
+        req.onsuccess = () => res(); req.onerror = () => res();
+      } catch { res(); }
+    });
+
+    adjustToggle.addEventListener('click', () => {
+      const open = adjustPanel.classList.toggle('open');
+      adjustToggle.classList.toggle('active', open);
+    });
+
+    function applyFilters(save = true) {
+      const b = sliderBrightness.value;
+      const s = sliderSaturation.value;
+      const c = sliderContrast.value;
+      valBrightness.textContent = b + '%';
+      valSaturation.textContent = s + '%';
+      valContrast.textContent   = c + '%';
+      const el = lbMedia.querySelector('img, video');
+      if (el) el.style.filter = `brightness(${b}%) saturate(${s}%) contrast(${c}%)`;
+      // save to DB for current item
+      if (save && currentIndex >= 0 && mediaItems[currentIndex]) {
+        ensureAdjStore().then(() => adjPut(mediaItems[currentIndex].id, b, s, c));
+      }
+    }
+
+    function setSliders(b, s, c) {
+      sliderBrightness.value = b;
+      sliderSaturation.value = s;
+      sliderContrast.value   = c;
+      applyFilters(false); // update display without re-saving
+    }
+
+    async function loadFilters(itemId) {
+      await ensureAdjStore();
+      const saved = await adjGet(itemId);
+      if (saved) {
+        setSliders(saved.b, saved.s, saved.c);
+      } else {
+        setSliders(100, 100, 100);
+      }
+    }
+
+    function hardResetFilters() {
+      setSliders(100, 100, 100);
+    }
+
+    sliderBrightness.addEventListener('input', () => applyFilters(true));
+    sliderSaturation.addEventListener('input', () => applyFilters(true));
+    sliderContrast.addEventListener('input',   () => applyFilters(true));
+
+    adjReset.addEventListener('click', async () => {
+      hardResetFilters();
+      // delete saved adjustments for this image
+      if (currentIndex >= 0 && mediaItems[currentIndex]) {
+        await ensureAdjStore();
+        try {
+          db.transaction(ADJ_STORE,'readwrite').objectStore(ADJ_STORE).delete(mediaItems[currentIndex].id);
+        } catch {}
+      }
+    });
+
+    // Load saved filters whenever a new image loads — patch renderMedia
+    const _origRenderMedia = renderMedia;
+    window.renderMedia = function(index, dir) {
+      _origRenderMedia(index, dir);
+      if (mediaItems[index]) {
+        // load after element is in DOM
+        setTimeout(() => loadFilters(mediaItems[index].id), 60);
+      }
+    };
+
+    // When lightbox closes just collapse the panel (keep values in DB)
+    const _origCloseLightbox = closeLightbox;
+    closeLightbox = function() {
+      _origCloseLightbox();
+      adjustPanel.classList.remove('open');
+      adjustToggle.classList.remove('active');
+    };
+
+  </script>
+</body>
+</html>
